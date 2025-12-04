@@ -1,161 +1,21 @@
-// "use client";
-
-// import { useEffect, useState } from "react";
-// import CustomerForm from "@/components/CustomerForm";
-// import { apiGet, apiDelete } from "@/lib/api"; // make sure apiDelete exists
-// import DeleteCustomerModal from "@/components/DeleteCustomerModal";
-
-// interface Customer {
-//   id: number;
-//   name: string;
-//   email: string;
-//   phone: string;
-// }
-
-// interface ResponseDTO<T> {
-//   status: string;
-//   message: string;
-//   data: T;
-// }
-
-// export default function CustomersPage() {
-//   const [isOpen, setIsOpen] = useState(false);
-//   const [editingCustomer, setEditingCustomer] = useState<Customer | undefined>(undefined);
-//   const [customers, setCustomers] = useState<Customer[]>([]);
-//   const [loading, setLoading] = useState(true);
-//   // state for delete modal
-//   const [deletingCustomer, setDeletingCustomer] = useState<Customer | undefined>(undefined);
-
-//   useEffect(() => {
-//     async function loadData() {
-//       try {
-//         const res: ResponseDTO<Customer[]> = await apiGet<ResponseDTO<Customer[]>>("/customers");
-//         setCustomers(res.data);
-//       } catch (err) {
-//         console.error("Failed to load customers", err);
-//       } finally {
-//         setLoading(false);
-//       }
-//     }
-//     loadData();
-//   }, []);
-
-//   const handleEdit = (customer: Customer) => {
-//     setEditingCustomer(customer);
-//     setIsOpen(true);
-//   };
-
-//   const handleDelete = (customer: Customer) => {
-//   setDeletingCustomer(customer); // open modal
-// };
-
-// // function to confirm deletion
-// const confirmDelete = async () => {
-//   if (!deletingCustomer) return;
-
-//   try {
-//     await apiDelete(`/customers/${deletingCustomer.id}`);
-//     setCustomers(customers.filter((c) => c.id !== deletingCustomer.id));
-//     setDeletingCustomer(undefined); // close modal
-//   } catch (err) {
-//     console.error("Failed to delete customer", err);
-//     alert("Failed to delete customer");
-//   }
-// };
-
-//   const handleSubmit = (customer: Customer) => {
-//     if (editingCustomer) {
-//       // update existing
-//       setCustomers(customers.map((c) => (c.id === customer.id ? customer : c)));
-//       setEditingCustomer(undefined);
-//     } else {
-//       // add new
-//       setCustomers([...customers, customer]);
-//     }
-//   };
-
-//   return (
-//     <div className="p-4">
-//       <div className="flex justify-between mb-6">
-//         <h1 className="text-2xl font-semibold text-black">Customers</h1>
-//         <button
-//           onClick={() => {
-//             setEditingCustomer(undefined);
-//             setIsOpen(true);
-//           }}
-//           className="bg-yellow-400 text-blue-900 px-4 py-2 rounded-lg font-semibold shadow hover:bg-yellow-300 transition"
-//         >
-//           + Add New Customer
-//         </button>
-//       </div>
-
-//       {loading && <p className="text-gray-500">Loading...</p>}
-
-//       {!loading && (
-//         <div className="overflow-x-auto">
-//           <table className="w-full bg-white shadow rounded-lg">
-//             <thead>
-//               <tr className="bg-gray-900 text-white text-left">
-//                 <th className="p-3">ID</th>
-//                 <th className="p-3">Name</th>
-//                 <th className="p-3">Email</th>
-//                 <th className="p-3">Phone</th>
-//                 <th className="p-3">Actions</th>
-//               </tr>
-//             </thead>
-//             <tbody>
-//               {customers.map((c) => (
-//                 <tr key={c.id} className="border-b hover:bg-gray-50">
-//                   <td className="p-3">{c.id}</td>
-//                   <td className="p-3">{c.name}</td>
-//                   <td className="p-3">{c.email}</td>
-//                   <td className="p-3">{c.phone}</td>
-//                   <td className="p-3 flex gap-2">
-//                     <button
-//                       className="px-2 py-1 bg-blue-900 text-white rounded hover:bg-blue-800"
-//                       onClick={() => handleEdit(c)}
-//                     >
-//                       Edit
-//                     </button>
-//                     <button
-//                       className="px-2 py-1 bg-red-600 text-white rounded hover:bg-red-500"
-//                       onClick={() => handleDelete(c)}
-//                     >
-//                       Delete
-//                     </button>
-//                   </td>
-//                 </tr>
-//               ))}
-//             </tbody>
-//           </table>
-//         </div>
-//       )}
-
-//       <CustomerForm
-//         isOpen={isOpen}
-//         onClose={() => setIsOpen(false)}
-//         onSubmit={handleSubmit}
-//         initialData={editingCustomer}
-//       />
-
-//       <DeleteCustomerModal
-//       isOpen={!!deletingCustomer}
-//       customer={deletingCustomer}
-//       onClose={() => setDeletingCustomer(undefined)}
-//       onConfirm={confirmDelete}
-// />
-
-//     </div>
-//   );
-// }
-
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import CustomerForm from "@/components/CustomerForm";
 import { apiGet, apiDelete } from "@/lib/api";
 import DeleteCustomerModal from "@/components/DeleteCustomerModal";
-import { UserGroupIcon, MagnifyingGlassIcon, FunnelIcon, PlusIcon, PencilIcon, TrashIcon, UserCircleIcon } from "@heroicons/react/24/outline";
+import { 
+  UserGroupIcon, 
+  MagnifyingGlassIcon, 
+  FunnelIcon, 
+  PlusIcon, 
+  PencilIcon, 
+  TrashIcon, 
+  UserCircleIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  ArrowUpIcon
+} from "@heroicons/react/24/outline";
 import { UserIcon, EnvelopeIcon, PhoneIcon } from "@heroicons/react/24/solid";
 
 interface Customer {
@@ -178,6 +38,8 @@ export default function CustomersPage() {
   const [loading, setLoading] = useState(true);
   const [deletingCustomer, setDeletingCustomer] = useState<Customer | undefined>(undefined);
   const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const customersPerPage = 5;
 
   useEffect(() => {
     async function loadData() {
@@ -193,11 +55,76 @@ export default function CustomersPage() {
     loadData();
   }, []);
 
-  const filteredCustomers = customers.filter(customer =>
-    customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.phone.includes(searchTerm)
-  );
+  // Filter and sort customers
+  const filteredAndSortedCustomers = useMemo(() => {
+    return customers
+      .filter(customer =>
+        customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        customer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        customer.phone.includes(searchTerm)
+      )
+      .sort((a, b) => a.name.localeCompare(b.name)); // Sort alphabetically by name
+  }, [customers, searchTerm]);
+
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredAndSortedCustomers.length / customersPerPage);
+  const indexOfLastCustomer = currentPage * customersPerPage;
+  const indexOfFirstCustomer = indexOfLastCustomer - customersPerPage;
+  const currentCustomers = filteredAndSortedCustomers.slice(indexOfFirstCustomer, indexOfLastCustomer);
+
+  // Calculate stats
+  const activeCustomers = useMemo(() => {
+    // This would come from your API, for now we'll use a mock calculation
+    return Math.floor(customers.length * 0.6); // 60% of customers are "active"
+  }, [customers]);
+
+  const avgOrdersPerCustomer = 3.2; // This would come from your API
+
+  // Pagination controls
+  const goToNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
+  const goToPrevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
+  const goToPage = (pageNumber: number) => {
+    if (pageNumber >= 1 && pageNumber <= totalPages) {
+      setCurrentPage(pageNumber);
+    }
+  };
+
+  // Generate page numbers for pagination
+  const getPageNumbers = () => {
+    const pageNumbers = [];
+    const maxPagesToShow = 3;
+    
+    if (totalPages <= maxPagesToShow) {
+      for (let i = 1; i <= totalPages; i++) {
+        pageNumbers.push(i);
+      }
+    } else {
+      if (currentPage <= 2) {
+        pageNumbers.push(1, 2, 3);
+      } else if (currentPage >= totalPages - 1) {
+        pageNumbers.push(totalPages - 2, totalPages - 1, totalPages);
+      } else {
+        pageNumbers.push(currentPage - 1, currentPage, currentPage + 1);
+      }
+    }
+    
+    return pageNumbers;
+  };
+
+  // Reset to page 1 when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
 
   const handleEdit = (customer: Customer) => {
     setEditingCustomer(customer);
@@ -263,7 +190,10 @@ export default function CustomersPage() {
             </div>
           </div>
           <div className="mt-3 pt-3 border-t border-blue-200">
-            <p className="text-xs text-blue-600">+12% from last month</p>
+            <p className="text-xs text-blue-600 flex items-center gap-1">
+              <ArrowUpIcon className="w-3 h-3" />
+              +12% from last month
+            </p>
           </div>
         </div>
 
@@ -271,7 +201,7 @@ export default function CustomersPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Active This Month</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">24</p>
+              <p className="text-2xl font-bold text-gray-900 mt-1">{activeCustomers}</p>
             </div>
             <div className="p-3 bg-emerald-100 rounded-full">
               <UserIcon className="w-6 h-6 text-emerald-600" />
@@ -286,7 +216,7 @@ export default function CustomersPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Avg. Orders/Customer</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">3.2</p>
+              <p className="text-2xl font-bold text-gray-900 mt-1">{avgOrdersPerCustomer}</p>
             </div>
             <div className="p-3 bg-amber-100 rounded-full">
               <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -322,9 +252,16 @@ export default function CustomersPage() {
 
       {/* Customers Table */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <div className="p-5 border-b border-gray-200">
-          <h3 className="font-semibold text-gray-900">All Customers</h3>
-          <p className="text-sm text-gray-600 mt-1">{filteredCustomers.length} customers found</p>
+        <div className="p-5 border-b border-gray-200 flex items-center justify-between">
+          <div>
+            <h3 className="font-semibold text-gray-900">All Customers</h3>
+            <p className="text-sm text-gray-600 mt-1">
+              Showing {indexOfFirstCustomer + 1}-{Math.min(indexOfLastCustomer, filteredAndSortedCustomers.length)} of {filteredAndSortedCustomers.length} customers
+            </p>
+          </div>
+          <div className="text-sm text-gray-500">
+            Sorted by: <span className="font-medium text-gray-700">Name (A-Z)</span>
+          </div>
         </div>
 
         {loading ? (
@@ -332,108 +269,163 @@ export default function CustomersPage() {
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
             <p className="text-gray-600 mt-2">Loading customers...</p>
           </div>
-        ) : filteredCustomers.length === 0 ? (
+        ) : filteredAndSortedCustomers.length === 0 ? (
           <div className="p-8 text-center">
             <UserCircleIcon className="w-12 h-12 text-gray-300 mx-auto" />
             <p className="text-gray-600 mt-2">No customers found</p>
-            <button
-              onClick={() => {
-                setEditingCustomer(undefined);
-                setIsOpen(true);
-              }}
-              className="mt-3 text-blue-600 hover:text-blue-700 font-medium"
-            >
-              Add your first customer
-            </button>
+            {searchTerm ? (
+              <button
+                onClick={() => setSearchTerm("")}
+                className="mt-3 inline-block text-blue-600 hover:text-blue-700 font-medium"
+              >
+                Clear search
+              </button>
+            ) : (
+              <button
+                onClick={() => {
+                  setEditingCustomer(undefined);
+                  setIsOpen(true);
+                }}
+                className="mt-3 inline-block text-blue-600 hover:text-blue-700 font-medium"
+              >
+                Add your first customer
+              </button>
+            )}
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-gray-50">
-                  <th className="text-left p-4 text-sm font-medium text-gray-700">Customer</th>
-                  <th className="text-left p-4 text-sm font-medium text-gray-700">Contact Info</th>
-                  <th className="text-left p-4 text-sm font-medium text-gray-700">Customer ID</th>
-                  <th className="text-left p-4 text-sm font-medium text-gray-700">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {filteredCustomers.map((customer) => (
-                  <tr key={customer.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-medium">
-                          {customer.name.charAt(0)}
-                        </div>
-                        <div>
-                          <p className="font-medium text-gray-900">{customer.name}</p>
-                          <p className="text-sm text-gray-500">Customer since 2024</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <EnvelopeIcon className="w-4 h-4 text-gray-400" />
-                          <span className="text-sm text-gray-700">{customer.email}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <PhoneIcon className="w-4 h-4 text-gray-400" />
-                          <span className="text-sm text-gray-700">{customer.phone}</span>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                        ID: {customer.id}
-                      </span>
-                    </td>
-                    <td className="p-4">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleEdit(customer)}
-                          className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-blue-200 text-blue-700 hover:bg-blue-50 transition-colors"
-                        >
-                          <PencilIcon className="w-4 h-4" />
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDelete(customer)}
-                          className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-red-200 text-red-700 hover:bg-red-50 transition-colors"
-                        >
-                          <TrashIcon className="w-4 h-4" />
-                          Delete
-                        </button>
-                      </div>
-                    </td>
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-gray-50">
+                    <th className="text-left p-4 text-sm font-medium text-gray-700">Customer</th>
+                    <th className="text-left p-4 text-sm font-medium text-gray-700">Contact Info</th>
+                    <th className="text-left p-4 text-sm font-medium text-gray-700">Customer ID</th>
+                    <th className="text-left p-4 text-sm font-medium text-gray-700">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {currentCustomers.map((customer) => (
+                    <tr key={customer.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="p-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-medium">
+                            {customer.name.charAt(0)}
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-900">{customer.name}</p>
+                            <p className="text-sm text-gray-500">Customer since 2024</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="p-4">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <EnvelopeIcon className="w-4 h-4 text-gray-400" />
+                            <span className="text-sm text-gray-700">{customer.email}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <PhoneIcon className="w-4 h-4 text-gray-400" />
+                            <span className="text-sm text-gray-700">{customer.phone}</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="p-4">
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                          ID: {customer.id}
+                        </span>
+                      </td>
+                      <td className="p-4">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleEdit(customer)}
+                            className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-blue-200 text-blue-700 hover:bg-blue-50 transition-colors"
+                          >
+                            <PencilIcon className="w-4 h-4" />
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDelete(customer)}
+                            className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-red-200 text-red-700 hover:bg-red-50 transition-colors"
+                          >
+                            <TrashIcon className="w-4 h-4" />
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
-        {/* Pagination */}
-        {filteredCustomers.length > 0 && (
-          <div className="p-4 border-t border-gray-200 flex items-center justify-between">
-            <div className="text-sm text-gray-600">
-              Showing 1-{Math.min(10, filteredCustomers.length)} of {filteredCustomers.length} customers
-            </div>
-            <div className="flex items-center gap-2">
-              <button className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">
-                Previous
-              </button>
-              <button className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">
-                1
-              </button>
-              <button className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">
-                2
-              </button>
-              <button className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">
-                Next
-              </button>
-            </div>
-          </div>
+            {/* Pagination */}
+            {filteredAndSortedCustomers.length > customersPerPage && (
+              <div className="p-4 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="text-sm text-gray-600">
+                  Page {currentPage} of {totalPages}
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  {/* Previous Button */}
+                  <button
+                    onClick={goToPrevPage}
+                    disabled={currentPage === 1}
+                    className="flex items-center gap-1 px-3 py-1.5 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <ChevronLeftIcon className="w-4 h-4" />
+                    Previous
+                  </button>
+
+                  {/* Page Numbers */}
+                  <div className="flex items-center gap-1">
+                    {getPageNumbers().map((pageNum) => (
+                      <button
+                        key={pageNum}
+                        onClick={() => goToPage(pageNum)}
+                        className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                          currentPage === pageNum
+                            ? "bg-blue-600 text-white hover:bg-blue-700"
+                            : "border border-gray-300 text-gray-700 hover:bg-gray-50"
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    ))}
+                    
+                    {/* Show ellipsis if there are more pages */}
+                    {totalPages > 3 && currentPage < totalPages - 1 && (
+                      <span className="px-2 text-gray-500">...</span>
+                    )}
+                    
+                    {/* Always show last page if not already shown */}
+                    {totalPages > 3 && !getPageNumbers().includes(totalPages) && (
+                      <button
+                        onClick={() => goToPage(totalPages)}
+                        className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                          currentPage === totalPages
+                            ? "bg-blue-600 text-white hover:bg-blue-700"
+                            : "border border-gray-300 text-gray-700 hover:bg-gray-50"
+                        }`}
+                      >
+                        {totalPages}
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Next Button */}
+                  <button
+                    onClick={goToNextPage}
+                    disabled={currentPage === totalPages}
+                    className="flex items-center gap-1 px-3 py-1.5 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Next
+                    <ChevronRightIcon className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 
