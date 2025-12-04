@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
+import ProtectedRoute from '@/components/ProtectedRoute';
 import CustomerForm from "@/components/CustomerForm";
 import { apiGet, apiDelete } from "@/lib/api";
 import DeleteCustomerModal from "@/components/DeleteCustomerModal";
@@ -31,7 +32,7 @@ interface ResponseDTO<T> {
   data: T;
 }
 
-export default function CustomersPage() {
+function CustomersPageContent() {
   const [isOpen, setIsOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | undefined>(undefined);
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -445,5 +446,13 @@ export default function CustomersPage() {
         onConfirm={confirmDelete}
       />
     </div>
+  );
+}
+
+export default function CustomersPage() {
+  return (
+    <ProtectedRoute>
+      <CustomersPageContent />
+    </ProtectedRoute>
   );
 }

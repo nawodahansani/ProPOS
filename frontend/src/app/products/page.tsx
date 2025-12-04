@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
+import ProtectedRoute from '@/components/ProtectedRoute';
 import ProductForm from "@/components/ProductForm";
 import { apiGet, apiDelete } from "@/lib/api";
 import DeleteProductModal from "@/components/DeleteProductModal";
@@ -31,7 +32,7 @@ interface ResponseDTO<T> {
   data: T;
 }
 
-export default function ProductsPage() {
+function ProductsPageContent() {
   const [isOpen, setIsOpen] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -501,5 +502,13 @@ export default function ProductsPage() {
         title="Delete Product"
       />
     </div>
+  );
+}
+
+export default function ProductsPage() {
+  return (
+    <ProtectedRoute>
+      <ProductsPageContent />
+    </ProtectedRoute>
   );
 }

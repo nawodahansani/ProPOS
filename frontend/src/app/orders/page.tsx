@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
+import ProtectedRoute from '@/components/ProtectedRoute';
 import Link from "next/link";
 import { apiGet } from "@/lib/api";
 import { 
@@ -40,7 +41,7 @@ interface ResponseDTO<T> {
   data: T;
 }
 
-export default function OrdersPage() {
+function OrdersPageContent() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -428,5 +429,13 @@ export default function OrdersPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function OrdersPage() {
+  return (
+    <ProtectedRoute>
+      <OrdersPageContent />
+    </ProtectedRoute>
   );
 }
