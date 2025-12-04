@@ -17,11 +17,11 @@ func NewOrderController(s service.OrderService) *OrderController {
 	return &OrderController{svc: s}
 }
 
-func (c *OrderController) RegisterRoutes(rg *gin.RouterGroup) {
-	rg.POST("", c.CreateOrder)
-	rg.GET("/:id", c.GetOrder)
-	rg.GET("", c.ListOrders)
-}
+// func (c *OrderController) RegisterRoutes(rg *gin.RouterGroup) {
+// 	rg.POST("", c.CreateOrder)
+// 	rg.GET("/:id", c.GetOrder)
+// 	rg.GET("", c.ListOrders)
+// }
 
 func (c *OrderController) CreateOrder(ctx *gin.Context) {
 	var input dto.CreateOrderDTO

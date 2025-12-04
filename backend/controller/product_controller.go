@@ -17,13 +17,13 @@ func NewProductController(s service.ProductService) *ProductController {
 	return &ProductController{svc: s}
 }
 
-func (c *ProductController) RegisterRoutes(rg *gin.RouterGroup) {
-	rg.POST("", c.CreateProduct)
-	rg.GET("", c.List)
-	rg.GET("/:id", c.GetByID)
-	rg.PUT("/:id", c.UpdateProduct)    
-	rg.DELETE("/:id", c.DeleteProduct)
-}
+// func (c *ProductController) RegisterRoutes(rg *gin.RouterGroup) {
+// 	rg.POST("", c.CreateProduct)
+// 	rg.GET("", c.List)
+// 	rg.GET("/:id", c.GetByID)
+// 	rg.PUT("/:id", c.UpdateProduct)    
+// 	rg.DELETE("/:id", c.DeleteProduct)
+// }
 
 func (c *ProductController) CreateProduct(ctx *gin.Context) {
 	var input dto.CreateProductDTO

@@ -17,13 +17,13 @@ func NewCustomerController(s service.CustomerService) *CustomerController {
 	return &CustomerController{svc: s}
 }
 
-func (c *CustomerController) RegisterRoutes(rg *gin.RouterGroup) {
-	rg.POST("", c.Create)
-	rg.GET("", c.List)
-	rg.GET("/:id", c.GetByID)
-	rg.PUT("/:id", c.Update)   
-	rg.DELETE("/:id", c.Delete)
-}
+// func (c *CustomerController) RegisterRoutes(rg *gin.RouterGroup) {
+// 	rg.POST("", c.Create)
+// 	rg.GET("", c.List)
+// 	rg.GET("/:id", c.GetByID)
+// 	rg.PUT("/:id", c.Update)   
+// 	rg.DELETE("/:id", c.Delete)
+// }
 
 func (c *CustomerController) Create(ctx *gin.Context) {
 	var input dto.CreateCustomerDTO

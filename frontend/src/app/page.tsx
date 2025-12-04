@@ -362,7 +362,7 @@ export default function HomePage() {
                   <Link 
                     key={product.id}
                     href={`/products?filter=${product.stock === 0 ? 'out-of-stock' : 'low-stock'}`}
-                    className="flex items-center justify-between p-3 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors group block"
+                    className="flex items-center justify-between p-3 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors group"
                   >
                     <div>
                       <h4 className="font-medium text-gray-900 group-hover:text-blue-600">{product.name}</h4>
