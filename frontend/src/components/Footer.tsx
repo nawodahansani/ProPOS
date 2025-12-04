@@ -1,18 +1,3 @@
-// 'use client'
-
-// import React from 'react'
-
-// export default function Footer() {
-//   return (
-//     <footer>
-//       &copy; {new Date().getFullYear()} POS System. All rights reserved.
-//     </footer>
-//   )
-// }
-
-
-
-
 'use client'
 
 export default function Footer() {
