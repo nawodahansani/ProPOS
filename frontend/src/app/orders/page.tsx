@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { apiGet } from "@/lib/api";
 import { 
@@ -8,7 +8,9 @@ import {
   MagnifyingGlassIcon, 
   PlusIcon,
   CurrencyRupeeIcon,
-  UserIcon
+  UserIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon
 } from "@heroicons/react/24/outline";
 import { ArrowUpIcon } from "@heroicons/react/24/solid";
 
@@ -43,6 +45,8 @@ export default function OrdersPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const ordersPerPage = 5;
 
   useEffect(() => {
     async function loadData() {
@@ -74,15 +78,30 @@ export default function OrdersPage() {
     return customers.find(c => c.id === customerId);
   };
 
-  const filteredOrders = orders.filter(order => {
-    const customerName = getCustomerName(order.customer_id);
-    const matchesSearch = 
-      customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.id.toString().includes(searchTerm);
-    
-    return matchesSearch;
-  });
+  // Sort orders by date (newest first) and filter by search term
+  const filteredAndSortedOrders = useMemo(() => {
+    return orders
+      .filter(order => {
+        const customerName = getCustomerName(order.customer_id);
+        const matchesSearch = 
+          customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          order.id.toString().includes(searchTerm);
+        
+        return matchesSearch;
+      })
+      .sort((a, b) => {
+        // Sort by created_at descending (newest first)
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      });
+  }, [orders, customers, searchTerm]);
 
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredAndSortedOrders.length / ordersPerPage);
+  const indexOfLastOrder = currentPage * ordersPerPage;
+  const indexOfFirstOrder = indexOfLastOrder - ordersPerPage;
+  const currentOrders = filteredAndSortedOrders.slice(indexOfFirstOrder, indexOfLastOrder);
+
+  // Calculate totals for stats
   const totalRevenue = orders.reduce((sum, o) => sum + o.total, 0);
   const avgOrderValue = orders.length > 0 
     ? orders.reduce((sum, o) => sum + o.total, 0) / orders.length 
@@ -101,12 +120,62 @@ export default function OrdersPage() {
       return date.toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric',
-        year: 'numeric'
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
       });
     } catch {
       return dateString;
     }
   };
+
+  // Pagination controls
+  const goToNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
+  const goToPrevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
+  const goToPage = (pageNumber: number) => {
+    if (pageNumber >= 1 && pageNumber <= totalPages) {
+      setCurrentPage(pageNumber);
+    }
+  };
+
+  // Generate page numbers for pagination
+  const getPageNumbers = () => {
+    const pageNumbers = [];
+    const maxPagesToShow = 3;
+    
+    if (totalPages <= maxPagesToShow) {
+      // Show all pages
+      for (let i = 1; i <= totalPages; i++) {
+        pageNumbers.push(i);
+      }
+    } else {
+      // Show limited pages with ellipsis
+      if (currentPage <= 2) {
+        pageNumbers.push(1, 2, 3);
+      } else if (currentPage >= totalPages - 1) {
+        pageNumbers.push(totalPages - 2, totalPages - 1, totalPages);
+      } else {
+        pageNumbers.push(currentPage - 1, currentPage, currentPage + 1);
+      }
+    }
+    
+    return pageNumbers;
+  };
+
+  // Reset to page 1 when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
 
   return (
     <div className="space-y-6">
@@ -190,11 +259,13 @@ export default function OrdersPage() {
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         <div className="p-5 border-b border-gray-200 flex items-center justify-between">
           <div>
-            <h3 className="font-semibold text-gray-900">All Orders</h3>
-            <p className="text-sm text-gray-600 mt-1">{filteredOrders.length} orders found</p>
+            <h3 className="font-semibold text-gray-900">Recent Orders</h3>
+            <p className="text-sm text-gray-600 mt-1">
+              Showing {indexOfFirstOrder + 1}-{Math.min(indexOfLastOrder, filteredAndSortedOrders.length)} of {filteredAndSortedOrders.length} orders
+            </p>
           </div>
           <div className="text-sm text-gray-500">
-            Sorted by: <span className="font-medium text-gray-700">Date (Newest)</span>
+            Sorted by: <span className="font-medium text-gray-700">Date (Newest First)</span>
           </div>
         </div>
 
@@ -203,95 +274,157 @@ export default function OrdersPage() {
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
             <p className="text-gray-600 mt-2">Loading orders...</p>
           </div>
-        ) : filteredOrders.length === 0 ? (
+        ) : filteredAndSortedOrders.length === 0 ? (
           <div className="p-8 text-center">
             <ShoppingBagIcon className="w-12 h-12 text-gray-300 mx-auto" />
             <p className="text-gray-600 mt-2">No orders found</p>
-            <Link 
-              href="/orders/create"
-              className="mt-3 inline-block text-blue-600 hover:text-blue-700 font-medium"
-            >
-              Create your first order
-            </Link>
+            {searchTerm ? (
+              <button
+                onClick={() => setSearchTerm("")}
+                className="mt-3 inline-block text-blue-600 hover:text-blue-700 font-medium"
+              >
+                Clear search
+              </button>
+            ) : (
+              <Link 
+                href="/orders/create"
+                className="mt-3 inline-block text-blue-600 hover:text-blue-700 font-medium"
+              >
+                Create your first order
+              </Link>
+            )}
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-gray-50">
-                  <th className="text-left p-4 text-sm font-medium text-gray-700">Order ID</th>
-                  <th className="text-left p-4 text-sm font-medium text-gray-700">Customer</th>
-                  <th className="text-left p-4 text-sm font-medium text-gray-700">Date</th>
-                  <th className="text-left p-4 text-sm font-medium text-gray-700">Items</th>
-                  <th className="text-left p-4 text-sm font-medium text-gray-700">Amount</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {filteredOrders.map((order) => {
-                  const customer = getCustomerDetails(order.customer_id);
-                  
-                  return (
-                    <tr key={order.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="p-4">
-                        <div className="font-medium text-gray-900">#{order.id}</div>
-                      </td>
-                      <td className="p-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
-                            <UserIcon className="w-4 h-4 text-white" />
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-gray-50">
+                    <th className="text-left p-4 text-sm font-medium text-gray-700">Order ID</th>
+                    <th className="text-left p-4 text-sm font-medium text-gray-700">Customer</th>
+                    <th className="text-left p-4 text-sm font-medium text-gray-700">Date & Time</th>
+                    <th className="text-left p-4 text-sm font-medium text-gray-700">Items</th>
+                    <th className="text-left p-4 text-sm font-medium text-gray-700">Amount</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {currentOrders.map((order) => {
+                    const customer = getCustomerDetails(order.customer_id);
+                    
+                    return (
+                      <tr key={order.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="p-4">
+                          <div className="font-medium text-gray-900">#{order.id}</div>
+                        </td>
+                        <td className="p-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
+                              <UserIcon className="w-4 h-4 text-white" />
+                            </div>
+                            <div>
+                              <p className="font-medium text-gray-900">
+                                {customer?.name || "Unknown Customer"}
+                              </p>
+                              <p className="text-sm text-gray-500">CID: {order.customer_id}</p>
+                              {customer?.phone && (
+                                <p className="text-xs text-gray-500">{customer.phone}</p>
+                              )}
+                            </div>
                           </div>
-                          <div>
-                            <p className="font-medium text-gray-900">
-                              {customer?.name || "Unknown Customer"}
-                            </p>
-                            <p className="text-sm text-gray-500">CID: {order.customer_id}</p>
-                            {customer?.phone && (
-                              <p className="text-xs text-gray-500">{customer.phone}</p>
-                            )}
+                        </td>
+                        <td className="p-4">
+                          <div className="text-gray-900">{formatDate(order.created_at)}</div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            {new Date(order.created_at).getTime() > Date.now() - 24 * 60 * 60 * 1000 
+                              ? "Today" 
+                              : new Date(order.created_at).getTime() > Date.now() - 48 * 60 * 60 * 1000
+                                ? "Yesterday"
+                                : ""}
                           </div>
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <div className="text-gray-900">{formatDate(order.created_at)}</div>
-                      </td>
-                      <td className="p-4">
-                        <div className="text-gray-900">{getItemsCount(order)} items</div>
-                      </td>
-                      <td className="p-4">
-                        <div className="flex items-center gap-1">
-                          <CurrencyRupeeIcon className="w-4 h-4 text-gray-600" />
-                          <span className="font-bold text-gray-900">{order.total?.toLocaleString() || "0"}</span>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+                        </td>
+                        <td className="p-4">
+                          <div className="text-gray-900">{getItemsCount(order)} items</div>
+                        </td>
+                        <td className="p-4">
+                          <div className="flex items-center gap-1">
+                            <CurrencyRupeeIcon className="w-4 h-4 text-gray-600" />
+                            <span className="font-bold text-gray-900">{order.total?.toLocaleString() || "0"}</span>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
 
-        {/* Pagination */}
-        {filteredOrders.length > 0 && (
-          <div className="p-4 border-t border-gray-200 flex items-center justify-between">
-            <div className="text-sm text-gray-600">
-              Showing 1-{Math.min(10, filteredOrders.length)} of {filteredOrders.length} orders
-            </div>
-            <div className="flex items-center gap-2">
-              <button className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">
-                Previous
-              </button>
-              <button className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">
-                1
-              </button>
-              <button className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">
-                2
-              </button>
-              <button className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">
-                Next
-              </button>
-            </div>
-          </div>
+            {/* Pagination */}
+            {filteredAndSortedOrders.length > ordersPerPage && (
+              <div className="p-4 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="text-sm text-gray-600">
+                  Page {currentPage} of {totalPages}
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  {/* Previous Button */}
+                  <button
+                    onClick={goToPrevPage}
+                    disabled={currentPage === 1}
+                    className="flex items-center gap-1 px-3 py-1.5 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <ChevronLeftIcon className="w-4 h-4" />
+                    Previous
+                  </button>
+
+                  {/* Page Numbers */}
+                  <div className="flex items-center gap-1">
+                    {getPageNumbers().map((pageNum) => (
+                      <button
+                        key={pageNum}
+                        onClick={() => goToPage(pageNum)}
+                        className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                          currentPage === pageNum
+                            ? "bg-blue-600 text-white hover:bg-blue-700"
+                            : "border border-gray-300 text-gray-700 hover:bg-gray-50"
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    ))}
+                    
+                    {/* Show ellipsis if there are more pages */}
+                    {totalPages > 3 && currentPage < totalPages - 1 && (
+                      <span className="px-2 text-gray-500">...</span>
+                    )}
+                    
+                    {/* Always show last page if not already shown */}
+                    {totalPages > 3 && !getPageNumbers().includes(totalPages) && (
+                      <button
+                        onClick={() => goToPage(totalPages)}
+                        className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                          currentPage === totalPages
+                            ? "bg-blue-600 text-white hover:bg-blue-700"
+                            : "border border-gray-300 text-gray-700 hover:bg-gray-50"
+                        }`}
+                      >
+                        {totalPages}
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Next Button */}
+                  <button
+                    onClick={goToNextPage}
+                    disabled={currentPage === totalPages}
+                    className="flex items-center gap-1 px-3 py-1.5 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Next
+                    <ChevronRightIcon className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
