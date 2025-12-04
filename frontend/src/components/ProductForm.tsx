@@ -267,7 +267,7 @@ export default function ProductForm({
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
           {/* Product Name */}
           <div>
-            <label className="block text-sm font-medium text-gray-900 mb-1.5 flex items-center gap-2">
+            <label className="text-sm font-medium text-gray-900 mb-1.5 flex items-center gap-2">
               <TagIcon className="w-4 h-4 text-gray-400" />
               Product Name
             </label>
@@ -284,7 +284,7 @@ export default function ProductForm({
           <div className="grid grid-cols-2 gap-4">
             {/* Price */}
             <div>
-              <label className="block text-sm font-medium text-gray-900 mb-1.5 flex items-center gap-2">
+              <label className="text-sm font-medium text-gray-900 mb-1.5 flex items-center gap-2">
                 <CurrencyRupeeIcon className="w-4 h-4 text-gray-400" />
                 Price
               </label>
